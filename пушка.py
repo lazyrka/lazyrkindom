@@ -10,8 +10,25 @@ fr = tk.Frame(root)
 root.geometry('800x600')
 canv = tk.Canvas(root, bg='white')
 canv.pack(fill=tk.BOTH, expand=1)
+l = tk.Label(root, bg='#B7C88E', fg='white', width=20)
+
+l.pack()
+usernameEntry = tk.Entry(root, width=50)
+usernameEntry.pack()
+
+t = ''
+
+def to_label(event):
+    '''
+    Функция считывает имя пользователя и помещает его на отдельный label
+    '''
+    global t
+    t = usernameEntry.get()
+    usernameLabel.configure(text=t)
+    usernameEntry.destroy()
 
 
+usernameEntry.bind('<Return>', to_label)
 class ball():
     def __init__(self, x=40, y=450):
         """ Конструктор класса ball
@@ -134,12 +151,24 @@ class gun():
 
 class target():
     def __init__(self):
+        self.dx = rnd(-10, 10)
+        self.dy = rnd(-10, 10)
         self.points = 0
         self.live = 1
     # FIXME: doesn't work!!! How to call this functions when object is created?
         self.id = canv.create_oval(0,0,0,0)
-        self.id_points = canv.create_text(30,30,text = self.points,font = '28')
-        self.new_target()
+        x = self.x = rnd(600, 750)
+        y = self.y = rnd(300, 400)
+        r = self.r = rnd(20, 70)
+        color = self.color = '#ECE5D1'
+        canv.coords(self.id, x - r, y - r, x + r, y + r)
+        canv.itemconfig(self.id, fill=color)
+
+    def hit(self, points=1):
+            """Попадание шарика в цель."""
+            canv.coords(self.id, -10, -10, -10, -10)
+            self.points += points
+            canv.delete(self.id)
 
     def new_target(self):
         """ Инициализация новой цели. """
@@ -154,40 +183,82 @@ class target():
         """Попадание шарика в цель."""
         canv.coords(self.id, -10, -10, -10, -10)
         self.points += points
-        canv.itemconfig(self.id_points, text=self.points)
+        canv.delete(self.id)
+
+    def set_coords(self):
+        canv.coords(
+            self.id,
+            self.x - self.r,
+            self.y - self.r,
+            self.x + self.r,
+            self.y + self.r
+        )
+
+    def move(self):
+
+        if self.x > 700:
+            self.dx = -self.dx
+        if self.y > 450:
+            self.dy = - self.dy
+        if self.x < 100:
+            self.dx = - self.dx
+        if self.y < 100:
+            self.dy = - self.dy
+        self.y += self.dy
+        self.x += self.dx
+        self.set_coords()
 
 
-t1 = target()
 screen1 = canv.create_text(400, 300, text='', font='28')
 g1 = gun()
 bullet = 0
 balls = []
+score = 0
+n = 0
 
 
 def new_game(event=''):
-    global gun, t1, screen1, balls, bullet
-    t1.new_target()
-    bullet = 0
+    global gun, t1, screen1, balls, bullet, score, n
+
+    t1 = target()
+    t2 = target()
+
+    t1.live = 1
+    t2.live = 1
     balls = []
     canv.bind('<Button-1>', g1.fire2_start)
     canv.bind('<ButtonRelease-1>', g1.fire2_end)
     canv.bind('<Motion>', g1.targetting)
 
     z = 0.03
-    t1.live = 1
-    while t1.live or balls:
+    while t1.live or t2.live or balls:
+        t1.move()
+        t2.move()
         for b in balls:
             b.move()
             if b.hittest(t1) and t1.live:
                 t1.live = 0
                 t1.hit()
-                canv.bind('<Button-1>', '')
-                canv.bind('<ButtonRelease-1>', '')
-                canv.itemconfig(screen1, text='Вы уничтожили цель за ' + str(bullet) + ' выстрелов')
+                score += t1.points
+                n += 1
+                l['text'] = str(score)
+                canv.itemconfig(screen1,
+                                text='Вы уничтожили цель за ' + str(bullet) + ' выстрелов')
+                bullet = 0
+            if b.hittest(t2) and t2.live:
+                t2.live = 0
+                t2.hit()
+                score += t2.points
+                n += 1
+                l['text'] = str(score)
+                canv.itemconfig(screen1,
+                                text='Вы уничтожили цель за ' + str(bullet) + ' выстрелов')
+                bullet = 0
         canv.update()
-        time.sleep(0.03)
+        time.sleep(z)
         g1.targetting()
         g1.power_up()
+
     canv.itemconfig(screen1, text='')
     canv.delete(gun)
     root.after(10, new_game)
@@ -196,3 +267,7 @@ def new_game(event=''):
 new_game()
 
 root.mainloop()
+
+string = 'Игрок ' + t + ' уничтожил ' + str(score) + ' мишени(ей)' + '\n'
+with open('results.txt', 'a') as f:
+    f.write(string)
