@@ -1,11 +1,14 @@
-a = list()
-word = input()
-while word != '':
-  a.append(int(word))
-  word = input()
+"""Напишите функцию,
+   которая возвращает медиану непустого упорядоченного списка,
+   и продемонстрируйте её корректность её работы"""
+import numpy as np
+print('input numbers that should be put in list')
+num=input()
+a=list()
+while num!='':
+ a.append(int(num))
+ num=input()
 a.sort()
-if len(a) % 2 == 0:
-  b = (a[len(a)//2-1]+a[len(a)//2])/2
-  print(float(b))
-elif len(a) % 2 == 1:
-  print(float(a[(len(a)-1)//2]))
+print(a)
+print('median of this list is ', np.median(a))
+
